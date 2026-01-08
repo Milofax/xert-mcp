@@ -42,7 +42,9 @@ A Model Context Protocol (MCP) server that connects Claude to the XERT API, prov
    npm run build
    ```
 
-## Claude Desktop Configuration
+## Configuration
+
+### Claude Desktop
 
 Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json`):
 
@@ -58,6 +60,26 @@ Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_
 ```
 
 Replace `/path/to/xert-mcp` with the actual path to your installation.
+
+### MCP Funnel (Claude Code)
+
+Add to your `.mcp-funnel.json`:
+
+```json
+{
+  "servers": {
+    "xert": {
+      "command": "node",
+      "args": ["/path/to/xert-mcp/dist/server.js"]
+    }
+  }
+}
+```
+
+Then activate in Claude Code:
+```
+discover_tools_by_words("xert", enable=true)
+```
 
 ## Available Tools
 
