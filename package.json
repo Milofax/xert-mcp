@@ -1,0 +1,38 @@
+{
+  "name": "xert-mcp",
+  "version": "1.0.0",
+  "description": "Model Context Protocol (MCP) server for XERT API - access fitness signature, training load, workouts and activities",
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "NODE_OPTIONS='--max-old-space-size=8192' tsc",
+    "start": "node dist/server.js",
+    "dev": "tsx src/server.ts",
+    "setup-auth": "tsx scripts/setup-auth.ts"
+  },
+  "keywords": [
+    "mcp",
+    "xert",
+    "cycling",
+    "training",
+    "fitness",
+    "claude",
+    "ai"
+  ],
+  "author": "Milofax",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.8.0",
+    "axios": "^1.7.0",
+    "dotenv": "^16.4.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
