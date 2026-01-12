@@ -14,10 +14,17 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, '..');
 const envPath = path.join(projectRoot, '.env');
+const tokenFilePath = path.join(projectRoot, 'xert-tokens.json');
 
 const XERT_BASE_URL = 'https://www.xertonline.com';
 const XERT_TOKEN_URL = `${XERT_BASE_URL}/oauth/token`;
 const XERT_PUBLIC_CLIENT = { username: 'xert_public', password: 'xert_public' };
+
+interface StoredTokens {
+  accessToken: string;
+  refreshToken: string;
+  timestamp: string;
+}
 
 // Types for XERT API responses
 
@@ -180,12 +187,54 @@ export interface UploadResponse {
 let accessToken: string | null = null;
 let refreshToken: string | null = null;
 
-function loadTokensFromEnv(): void {
-  accessToken = process.env.XERT_ACCESS_TOKEN || null;
-  refreshToken = process.env.XERT_REFRESH_TOKEN || null;
+function loadTokensFromFile(): boolean {
+  try {
+    if (fs.existsSync(tokenFilePath)) {
+      const data = JSON.parse(fs.readFileSync(tokenFilePath, 'utf-8')) as StoredTokens;
+      if (data.accessToken && data.refreshToken) {
+        accessToken = data.accessToken;
+        refreshToken = data.refreshToken;
+        console.error(`[XERT] Loaded tokens from file (saved: ${data.timestamp})`);
+        return true;
+      }
+    }
+  } catch (error) {
+    console.error('[XERT] Failed to load tokens from file:', error);
+  }
+  return false;
 }
 
-function updateEnvFile(newAccessToken: string, newRefreshToken: string): void {
+function loadTokensFromEnv(): void {
+  // First try to load from token file (persisted after refresh)
+  if (loadTokensFromFile()) {
+    return;
+  }
+
+  // Fallback to environment variables
+  accessToken = process.env.XERT_ACCESS_TOKEN || null;
+  refreshToken = process.env.XERT_REFRESH_TOKEN || null;
+
+  if (accessToken && refreshToken) {
+    console.error('[XERT] Loaded tokens from environment variables');
+  }
+}
+
+function saveTokensToFile(newAccessToken: string, newRefreshToken: string): void {
+  const tokenData: StoredTokens = {
+    accessToken: newAccessToken,
+    refreshToken: newRefreshToken,
+    timestamp: new Date().toISOString(),
+  };
+
+  fs.writeFileSync(tokenFilePath, JSON.stringify(tokenData, null, 2) + '\n');
+  console.error(`[XERT] Saved tokens to file: ${tokenFilePath}`);
+}
+
+function updateTokens(newAccessToken: string, newRefreshToken: string): void {
+  // Save to token file (primary storage)
+  saveTokensToFile(newAccessToken, newRefreshToken);
+
+  // Also update .env file for backwards compatibility
   let envContent = '';
 
   if (fs.existsSync(envPath)) {
@@ -234,7 +283,7 @@ async function refreshAccessToken(): Promise<void> {
       },
     });
 
-    updateEnvFile(response.data.access_token, response.data.refresh_token);
+    updateTokens(response.data.access_token, response.data.refresh_token);
     console.error('[XERT] Token refreshed successfully');
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 401) {

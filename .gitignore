@@ -7,6 +7,9 @@ dist/
 # Environment variables (contains secrets)
 .env
 
+# Token storage (contains credentials)
+xert-tokens.json
+
 # IDE
 .vscode/
 .idea/

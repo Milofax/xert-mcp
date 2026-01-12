@@ -110,9 +110,21 @@ npm run build
 npm start
 ```
 
-## Token Refresh
+## Token Management
 
-The server automatically refreshes expired tokens. Tokens are valid for 7 days. If refresh fails, run `npm run setup-auth` again.
+The server handles tokens automatically:
+
+- **Access tokens** expire after 7 days
+- **Refresh tokens** expire after 6 months
+- Tokens are stored in `xert-tokens.json` (created automatically)
+- On 401 errors, tokens are refreshed automatically
+- New tokens are persisted to survive server restarts
+
+If authentication fails completely, run `npm run setup-auth` again.
+
+### MCP Funnel / Environment Variables
+
+When using mcp-funnel or similar tools, tokens from `xert-tokens.json` take priority over environment variables. This ensures refreshed tokens are used even when env vars contain outdated values.
 
 ## License
 
