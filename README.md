@@ -64,6 +64,51 @@ Replace `/path/to/xert-mcp` with the actual path to your installation.
 
 Restart Claude Desktop to load the server.
 
+### Docker
+
+You can also run the server via Docker:
+
+#### 1. Build the image
+
+```bash
+docker build -t xert-mcp .
+```
+
+#### 2. Get your XERT tokens
+
+Run the setup script locally first to authenticate:
+
+```bash
+npm install
+npm run setup-auth
+```
+
+This creates `xert-tokens.json` with your access and refresh tokens.
+
+#### 3. Configure Claude Desktop
+
+```json
+{
+  "mcpServers": {
+    "xert": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "-e", "XERT_ACCESS_TOKEN",
+        "-e", "XERT_REFRESH_TOKEN",
+        "xert-mcp"
+      ],
+      "env": {
+        "XERT_ACCESS_TOKEN": "your-access-token-from-xert-tokens.json",
+        "XERT_REFRESH_TOKEN": "your-refresh-token-from-xert-tokens.json"
+      }
+    }
+  }
+}
+```
+
+**Note:** Access tokens expire after 7 days. When they expire, run `npm run setup-auth` again and update the tokens in your config.
+
 ## Available Tools
 
 | Tool | Description |
