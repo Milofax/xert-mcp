@@ -18,6 +18,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, '..');
 const envPath = path.join(projectRoot, '.env');
+const tokenFilePath = path.join(projectRoot, 'xert-tokens.json');
 
 const XERT_TOKEN_URL = 'https://www.xertonline.com/oauth/token';
 const XERT_PUBLIC_CLIENT = { username: 'xert_public', password: 'xert_public' };
@@ -175,10 +176,19 @@ async function main(): Promise<void> {
     console.log(`   Scope: ${tokenResponse.scope}`);
     console.log('');
 
-    // Save tokens
+    // Save tokens to .env (for local development)
     updateEnvFile(tokenResponse.access_token, tokenResponse.refresh_token);
 
+    // Save tokens to xert-tokens.json (for container deployment)
+    const tokenData = {
+      accessToken: tokenResponse.access_token,
+      refreshToken: tokenResponse.refresh_token,
+      timestamp: new Date().toISOString(),
+    };
+    fs.writeFileSync(tokenFilePath, JSON.stringify(tokenData, null, 2) + '\n');
+
     console.log(`✅ Tokens saved to: ${envPath}`);
+    console.log(`✅ Token file saved to: ${tokenFilePath}`);
     console.log('');
     console.log('╔══════════════════════════════════════════════════════════════╗');
     console.log('║                    Setup Complete!                           ║');
