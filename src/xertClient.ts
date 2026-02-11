@@ -231,37 +231,38 @@ function saveTokensToFile(newAccessToken: string, newRefreshToken: string): void
 }
 
 function updateTokens(newAccessToken: string, newRefreshToken: string): void {
-  // Save to token file (primary storage)
-  saveTokensToFile(newAccessToken, newRefreshToken);
-
-  // Also update .env file for backwards compatibility
-  let envContent = '';
-
-  if (fs.existsSync(envPath)) {
-    envContent = fs.readFileSync(envPath, 'utf-8');
-  }
-
-  // Update or add tokens
-  if (envContent.includes('XERT_ACCESS_TOKEN=')) {
-    envContent = envContent.replace(/XERT_ACCESS_TOKEN=.*/g, `XERT_ACCESS_TOKEN=${newAccessToken}`);
-  } else {
-    envContent += `\nXERT_ACCESS_TOKEN=${newAccessToken}`;
-  }
-
-  if (envContent.includes('XERT_REFRESH_TOKEN=')) {
-    envContent = envContent.replace(/XERT_REFRESH_TOKEN=.*/g, `XERT_REFRESH_TOKEN=${newRefreshToken}`);
-  } else {
-    envContent += `\nXERT_REFRESH_TOKEN=${newRefreshToken}`;
-  }
-
-  envContent = envContent.replace(/\n{3,}/g, '\n\n').trim() + '\n';
-  fs.writeFileSync(envPath, envContent);
-
-  // Update in-memory tokens
+  // Update in-memory tokens first (always succeeds)
   accessToken = newAccessToken;
   refreshToken = newRefreshToken;
-  process.env.XERT_ACCESS_TOKEN = newAccessToken;
-  process.env.XERT_REFRESH_TOKEN = newRefreshToken;
+
+  // Save to token file (primary storage, writable bind-mount in container)
+  saveTokensToFile(newAccessToken, newRefreshToken);
+
+  // Also update .env file for local dev (may fail in read-only container)
+  try {
+    let envContent = '';
+
+    if (fs.existsSync(envPath)) {
+      envContent = fs.readFileSync(envPath, 'utf-8');
+    }
+
+    if (envContent.includes('XERT_ACCESS_TOKEN=')) {
+      envContent = envContent.replace(/XERT_ACCESS_TOKEN=.*/g, `XERT_ACCESS_TOKEN=${newAccessToken}`);
+    } else {
+      envContent += `\nXERT_ACCESS_TOKEN=${newAccessToken}`;
+    }
+
+    if (envContent.includes('XERT_REFRESH_TOKEN=')) {
+      envContent = envContent.replace(/XERT_REFRESH_TOKEN=.*/g, `XERT_REFRESH_TOKEN=${newRefreshToken}`);
+    } else {
+      envContent += `\nXERT_REFRESH_TOKEN=${newRefreshToken}`;
+    }
+
+    envContent = envContent.replace(/\n{3,}/g, '\n\n').trim() + '\n';
+    fs.writeFileSync(envPath, envContent);
+  } catch {
+    // Expected in container where vendor/ is read-only
+  }
 }
 
 async function refreshAccessToken(): Promise<void> {
