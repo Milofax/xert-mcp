@@ -56,7 +56,7 @@ export const listActivitiesTool = {
           : Number(args.from);
 
         toTimestamp = isNaN(Number(args.to))
-          ? Math.floor(new Date(args.to).getTime() / 1000)
+          ? Math.floor(new Date(args.to).getTime() / 1000) + 86400
           : Number(args.to);
       }
 
