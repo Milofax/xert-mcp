@@ -18,10 +18,12 @@ export const listActivitiesTool = {
     shape: {
       from: z
         .string()
-        .describe('Start date in ISO format (e.g., "2024-01-01") or Unix timestamp'),
+        .optional()
+        .describe('Start date in ISO format (e.g., "2024-01-01") or Unix timestamp. Required unless daysAgo is used'),
       to: z
         .string()
-        .describe('End date in ISO format (e.g., "2024-12-31") or Unix timestamp'),
+        .optional()
+        .describe('End date in ISO format (e.g., "2024-12-31") or Unix timestamp. Required unless daysAgo is used'),
       daysAgo: z
         .number()
         .optional()
