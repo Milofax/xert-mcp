@@ -11,6 +11,10 @@ A Model Context Protocol (MCP) server that connects Claude to the XERT API, prov
 - 🚴 **Activities** - Browse activities with full XSS metrics and MPA data
 - ⬆️ **Upload** - Upload FIT files for analysis
 
+## Hosted deployment
+
+A hosted deployment is available on [Fronteir AI](https://fronteir.ai/mcp/milofax-xert-mcp).
+
 ## Installation
 
 ### Prerequisites
