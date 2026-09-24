@@ -5,7 +5,7 @@
   "type": "module",
   "main": "dist/server.js",
   "scripts": {
-    "build": "NODE_OPTIONS='--max-old-space-size=8192' tsc",
+    "build": "cross-env NODE_OPTIONS=--max-old-space-size=8192 tsc",
     "start": "node dist/server.js",
     "dev": "tsx src/server.ts",
     "setup-auth": "tsx scripts/setup-auth.ts"
@@ -29,6 +29,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "cross-env": "^10.1.0",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0"
   },
