@@ -5,11 +5,13 @@
  * Provides tools for fitness signature, training load, workouts, and activities.
  */
 
+// IMPORTANT: Must be the first import. ES module imports execute before any
+// other top-level code in this file, so loading .env here (as a side effect)
+// guarantees it happens before tools/index.js -> xertClient.js read process.env.
+import './loadEnv.js';
+
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import * as dotenv from 'dotenv';
-import * as path from 'path';
-import { fileURLToPath } from 'url';
 
 import { SERVER_NAME, getServerInfo } from './serverInfo.js';
 
@@ -23,15 +25,6 @@ import {
   getActivityTool,
   uploadFitTool,
 } from './tools/index.js';
-
-// Load .env file from project root
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const projectRoot = path.resolve(__dirname, '..');
-const envPath = path.join(projectRoot, '.env');
-
-// IMPORTANT: Load env BEFORE any client initialization
-dotenv.config({ path: envPath });
 
 const { version: serverVersion } = getServerInfo();
 
