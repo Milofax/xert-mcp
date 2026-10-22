@@ -205,6 +205,11 @@ function loadTokensFromFile(): boolean {
 }
 
 function loadTokensFromEnv(): void {
+  // In client-credentials mode legacy (xert_public) tokens must NOT be used
+  if (getClientCredentials()) {
+    return;
+  }
+
   // First try to load from token file (persisted after refresh)
   if (loadTokensFromFile()) {
     return;
@@ -294,6 +299,51 @@ async function refreshAccessToken(): Promise<void> {
   }
 }
 
+// Client-credentials mode (Xert API 1.7+)
+// Since API 1.7 the public client "xert_public" returns FIXED DEMO DATA for
+// activities and workouts. Personal access requires your own Client Key/Secret
+// (Xert -> Account Settings -> Developer). Set XERT_CLIENT_ID (xk_...) and
+// XERT_CLIENT_SECRET (xs_...) in .env or in the MCP "env" config.
+
+let ccTokenExpiresAt = 0; // epoch ms
+
+function getClientCredentials(): { id: string; secret: string } | null {
+  const id = process.env.XERT_CLIENT_ID;
+  const secret = process.env.XERT_CLIENT_SECRET;
+  return id && secret ? { id, secret } : null;
+}
+
+async function fetchClientCredentialsToken(): Promise<void> {
+  const creds = getClientCredentials();
+  if (!creds) {
+    throw new Error('XERT_CLIENT_ID / XERT_CLIENT_SECRET not set');
+  }
+  const params = new URLSearchParams();
+  params.append('grant_type', 'client_credentials');
+  try {
+    const response = await axios.post(XERT_TOKEN_URL, params.toString(), {
+      auth: { username: creds.id, password: creds.secret },
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    });
+    accessToken = response.data.access_token;
+    const expiresIn = Number(response.data.expires_in) || 7 * 24 * 3600;
+    // renew 1 hour before expiry
+    ccTokenExpiresAt = Date.now() + (expiresIn - 3600) * 1000;
+    console.error('[XERT] Obtained token via client_credentials');
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      throw new Error('Invalid Xert client key/secret (invalid_client). Regenerate in Xert Account Settings -> Developer.');
+    }
+    throw error;
+  }
+}
+
+async function ensureClientCredentialsToken(): Promise<void> {
+  if (!accessToken || Date.now() >= ccTokenExpiresAt) {
+    await fetchClientCredentialsToken();
+  }
+}
+
 // API Client
 
 function createApiClient(): AxiosInstance {
@@ -307,7 +357,10 @@ function createApiClient(): AxiosInstance {
   });
 
   // Request interceptor to add auth header
-  client.interceptors.request.use((config) => {
+  client.interceptors.request.use(async (config) => {
+    if (getClientCredentials()) {
+      await ensureClientCredentialsToken();
+    }
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
@@ -323,7 +376,11 @@ function createApiClient(): AxiosInstance {
       if (error.response?.status === 401 && originalRequest && !('_retry' in originalRequest)) {
         (originalRequest as typeof originalRequest & { _retry: boolean })._retry = true;
 
-        await refreshAccessToken();
+        if (getClientCredentials()) {
+          await fetchClientCredentialsToken();
+        } else {
+          await refreshAccessToken();
+        }
 
         // Update the auth header with new token
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;

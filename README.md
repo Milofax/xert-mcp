@@ -31,11 +31,22 @@ A Model Context Protocol (MCP) server that connects Claude to the XERT API, prov
    npm install
    ```
 
-3. **Authenticate with XERT:**
+3. **Authenticate with XERT (API 1.7+, recommended):**
+
+   > **Important:** since Xert API 1.7 the public client `xert_public` (used by `npm run setup-auth`)
+   > returns **fixed demo data** for activities and workouts (see the
+   > [Xert API docs](https://www.xertonline.com/API.html)). `training_info` still works, which can hide the problem.
+
+   In Xert go to **Account Settings → Developer**, copy your **Client Key** (`xk_…`) and generate a
+   **Client Secret** (`xs_…`, shown only once). Then add them to `.env`:
    ```bash
-   npm run setup-auth
+   XERT_CLIENT_ID=xk_...
+   XERT_CLIENT_SECRET=xs_...
    ```
-   Enter your XERT email and password when prompted. Tokens will be saved to `.env`.
+   The server obtains and renews tokens automatically using the `client_credentials` grant
+   (7-day tokens, no refresh token). Legacy tokens are ignored when these variables are set.
+
+   *Legacy (demo data only):* `npm run setup-auth` — enter your XERT email and password; tokens are saved to `.env`.
 
 4. **Build the project:**
    ```bash
@@ -74,16 +85,9 @@ You can also run the server via Docker:
 docker build -t xert-mcp .
 ```
 
-#### 2. Get your XERT tokens
+#### 2. Get your XERT client credentials
 
-Run the setup script locally first to authenticate:
-
-```bash
-npm install
-npm run setup-auth
-```
-
-This creates `xert-tokens.json` with your access and refresh tokens.
+In Xert go to **Account Settings → Developer** and copy your Client Key (`xk_…`) and Client Secret (`xs_…`).
 
 #### 3. Configure Claude Desktop
 
@@ -94,20 +98,20 @@ This creates `xert-tokens.json` with your access and refresh tokens.
       "command": "docker",
       "args": [
         "run", "-i", "--rm",
-        "-e", "XERT_ACCESS_TOKEN",
-        "-e", "XERT_REFRESH_TOKEN",
+        "-e", "XERT_CLIENT_ID",
+        "-e", "XERT_CLIENT_SECRET",
         "xert-mcp"
       ],
       "env": {
-        "XERT_ACCESS_TOKEN": "your-access-token-from-xert-tokens.json",
-        "XERT_REFRESH_TOKEN": "your-refresh-token-from-xert-tokens.json"
+        "XERT_CLIENT_ID": "xk_...",
+        "XERT_CLIENT_SECRET": "xs_..."
       }
     }
   }
 }
 ```
 
-**Note:** Access tokens expire after 7 days. When they expire, run `npm run setup-auth` again and update the tokens in your config.
+**Note:** With client credentials the server requests a new token automatically before it expires (7 days) — no manual token updates are needed.
 
 ## Available Tools
 
@@ -157,7 +161,14 @@ npm start
 
 ## Token Management
 
-The server handles tokens automatically:
+**Client credentials mode** (`XERT_CLIENT_ID` + `XERT_CLIENT_SECRET` set — recommended):
+
+- Tokens are requested with the `client_credentials` grant and kept in memory
+- A new token is requested 1 hour before expiry and on any 401 response
+- `xert-tokens.json` and `XERT_ACCESS_TOKEN` / `XERT_REFRESH_TOKEN` are ignored
+- Invalid key/secret → `invalid_client` error; regenerate the secret in Xert (Account Settings → Developer)
+
+**Legacy mode** (`xert_public`, returns demo data for activities/workouts since API 1.7):
 
 - **Access tokens** expire after 7 days
 - **Refresh tokens** expire after 6 months
